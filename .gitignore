@@ -1,0 +1,4 @@
+.*.swp
+config.coffee
+Session.vim
+node_modules
