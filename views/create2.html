@@ -1,15 +1,15 @@
 {{#fail}}
-	<p>There was an error creating the account. Contact clehner for help.</p>
+	<p>There was an error creating the account. Contact {{> admin_contact}} for help.</p>
 {{/fail}}
 
 {{#key_fail}}
-	<p>SSH keys failed to import. Contact clehner for help.</p>
+	<p>SSH keys failed to import. Contact {{> admin_contact}} for help.</p>
 {{/key_fail}}
 
 {{#key_success}}
-	<p>Your account has been created.</p>
+	<h2 class="created">Your account has been created.</h2>
 	<p>SSH keys have been imported from github so you can log in:</p>
-	<p><kbd style="font-family: monospace">$ ssh {{username}}@rochack.org</kbd></p>
+	<p class="indent"><kbd>$ ssh {{username}}@rochack.org</kbd></p>
 {{/key_success}}
 
 {{#forward_fail}}
@@ -17,7 +17,17 @@
 {{/forward_fail}}
 
 {{#forward_success}}
-	<p>Email forwarding will be set up as soon as clehner installs a mail
+	<p>Email forwarding will be set up as soon as {{> admin_contact}} installs a mail
 	server.</p>
 {{/forward_success}}
 
+{{^password}}
+	<p>The account has password access turned off. Contact {{> admin_contact}}
+	if you want to be able to log in by password instead of only ssh keys.</p>
+{{/password}}
+
+{{#password}}
+	<p>Your password has been set to:</p>
+	<p class="indent"><kbd>{{password}}</kbd</p>
+	<p>Log in and change it with <kbd>passwd</kbd>.</p>
+{{/password}}

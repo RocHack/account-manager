@@ -1,0 +1,21 @@
+body {
+	max-width: 40em;
+	margin: 2em auto;
+}
+
+h2.created {
+	color: #777;
+	font-size: 1.8em;
+}
+
+label {
+	display: inline;
+}
+
+kbd {
+	font-family: monospace;
+}
+
+.indent {
+	margin-left: 2em;
+}

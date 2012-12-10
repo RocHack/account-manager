@@ -31,8 +31,10 @@ user_stuff = {}
 
 app.set 'view engine', 'html'
 app.set 'layout', 'layout'
+app.set 'partials', admin_contact: 'admin_contact'
 app.engine 'html', require 'hogan-express'
 app.set 'views', __dirname + '/views'
+app.use '/static', express.static __dirname + '/static'
 
 app.get '/', (req, res) ->
   res.render 'index'
@@ -107,8 +109,8 @@ app.get '/create', (req, res) ->
 
       # check for existing account
       #res.send 'checking for existing account'
-      passwd = child_process.spawn 'getent', ['passwd', username]
-      passwd.on 'exit', (code) ->
+      getent = child_process.spawn 'getent', ['passwd', username]
+      getent.on 'exit', (code) ->
         if code == 0
           # account exists
           res.locals.duplicate = true
@@ -181,25 +183,41 @@ app.post '/create', (req, res) ->
       res.locals.fail = true
       res.render 'create2'
       return
-    console.log 'Added user ' + username
+    console.log 'Added user', username
 
     # account created.
 
-    id = child_process.spawn 'id', ['-u', username]
-    id.stdout.on 'data', (data) ->
-      uid = Number data.toString()
-      gid = 1000
+    # set temporary password
+    password = unique_id 12
+    passwd = child_process.spawn 'chpasswd'
+    passwd.stdin.end username + ':' + password
+    passwd.on 'exit', (code) ->
+      if code != 0
+        console.error 'passwd failed for user', username
+      else
+        console.log 'Set password for', username
+        res.locals.password = password
 
-      # import ssh keys
-      #res.send 'Importing your public keys...'
-      # todo: setuid/gid this script
-      child_process.exec 'chmod 755 . && ' +
-        'mkdir .ssh && ' +
-        'chmod 700 .ssh && ' +
-        'touch .ssh/authorized_keys && ' +
-        'chmod 600 .ssh/authorized_keys && ' +
-        "chown -R #{uid}:#{gid} .",
-        cwd: home, (err, stdout, stderr) ->
+      # get uid
+      id = child_process.spawn 'id', ['-u', username]
+      id.stdout.on 'data', (data) ->
+        uid = Number data.toString()
+        gid = 1000
+
+        # init home directory
+        #res.send 'Importing your public keys...'
+        # todo: setuid/gid this script
+        cmd = [
+          'chmod 750 .'
+          'mkdir .ssh'
+          'chmod 700 .ssh'
+          'touch .ssh/authorized_keys'
+          'chmod 600 .ssh/authorized_keys'
+          'touch .forward'
+          "chown -R #{uid}:#{gid} ."
+        ].join '; '
+
+        child_process.exec cmd, cwd: home, (err, stdout, stderr) ->
           if stderr
             console.error stderr
           if err
@@ -208,7 +226,7 @@ app.post '/create', (req, res) ->
             res.render 'create2'
             return
 
-          # write keys
+          # import ssh keys
           fs.writeFile home + '/.ssh/authorized_keys', keys_str, (err) ->
             if err
               console.error err
