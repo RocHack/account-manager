@@ -1,0 +1,23 @@
+{{#fail}}
+	<p>There was an error creating the account. Contact clehner for help.</p>
+{{/fail}}
+
+{{#key_fail}}
+	<p>SSH keys failed to import. Contact clehner for help.</p>
+{{/key_fail}}
+
+{{#key_success}}
+	<p>Your account has been created.</p>
+	<p>SSH keys have been imported from github so you can log in:</p>
+	<p><kbd style="font-family: monospace">$ ssh {{username}}@rochack.org</kbd></p>
+{{/key_success}}
+
+{{#forward_fail}}
+	<p>Unable to set up email forwarding</p>
+{{/forward_fail}}
+
+{{#forward_success}}
+	<p>Email forwarding will be set up as soon as clehner installs a mail
+	server.</p>
+{{/forward_success}}
+

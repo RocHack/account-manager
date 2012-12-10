@@ -1,0 +1,31 @@
+{{#nonmember}}
+	<p>Seems you are not a public member of the
+	<a href="http://rochack.org/">RocHack</a>GitHub
+	<a href="https://github.com/RocHack/">organization.</a> :(</p>
+{{/nonmember}}
+
+{{#duplicate}}
+	<p>You already have an account, {{username}}.</p>
+{{/duplicate}}
+
+{{#key_error}}
+	<p>There was a problem importing your SSH keys.
+		<a href="">Try again</a>?</p>
+{{/key_error}}
+
+{{#no_keys}}
+	<p>Your GitHub account seems to have no SSH keys. <a
+		href="https://github.com/settings/ssh">Add some</a> and try again.</p>
+{{/no_keys}}
+
+{{#ok}}
+	<form action="" method="post">
+		<p>Username: {{username}}</p>
+		<p>When you access the internet or campus network using the RocHack server you are required to follow the <a href="//www.rochester.edu/it/policy/acceptable.php">University of Rochester Network Acceptable Use Policy</a>.</p>
+		<p><label for="agree_to_aup" style="display:inline">I have read and accept the Network
+			Acceptable Use Policy.</label>
+			<input name="agree_to_aup" id="agree_to_aup" type="checkbox" value="yes"></p>
+		<p><input type="submit" value="Create RocHack account"></p>
+	</form>
+{{/ok}}
+
