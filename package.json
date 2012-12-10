@@ -9,6 +9,6 @@
     "coffee-script": "~1.4.0"
 	},
   "scripts": {
-    "start": "coffee account"
+    "start": "coffee app"
   }
 }
