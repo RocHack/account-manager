@@ -1,5 +1,5 @@
 {
-  "name": "rochack-accountadd",
+  "name": "rochack-account-manager",
   "description": "Web interface for members of RocHack to create an account on rochack.org",
   "version": "0.0.2",
   "private": true,
