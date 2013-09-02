@@ -49,7 +49,7 @@ app.get '/login', (req, res) ->
       scope: 'user'
   else
     # exchange oauth code for access_token
-    headers = 
+    headers =
       'Content-Type': 'application/x-www-form-urlencoded'
     body = qs.stringify
       client_id: config.client_id
