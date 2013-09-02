@@ -1,1 +1,12 @@
-/usr/lib/systemd/system/accountadd.service
+[Unit]
+Description=Web interface for RocHack member account creation
+After=network.target
+
+[Service]
+ExecStart=/srv/http/account.rochack.org/app.coffee
+Type=simple
+StandardError=journal
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
