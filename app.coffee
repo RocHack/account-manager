@@ -252,6 +252,6 @@ app.post '/create', (req, res) ->
 
               res.render 'create2'
 
-port = 49080
+port = config.port
 app.listen port, '127.0.0.1'
 console.log 'Listening on port', port
