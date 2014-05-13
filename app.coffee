@@ -7,6 +7,7 @@ fs = require 'fs'
 express = require 'express'
 net = require './net'
 config = require './config'
+hogan_render = require 'hogan-express'
 
 api_host = 'api.github.com'
 api_headers =
@@ -34,7 +35,8 @@ user_stuff = {}
 app.set 'view engine', 'html'
 app.set 'layout', 'layout'
 app.set 'partials', admin_contact: 'admin_contact'
-app.engine 'html', require 'hogan-express'
+app.engine 'html', hogan_render
+app.engine 'eml', hogan_render
 app.set 'views', __dirname + '/views'
 app.use '/static', express.static __dirname + '/static'
 
@@ -234,7 +236,7 @@ app.post '/create', (req, res) ->
             return
 
           # import ssh keys
-          fs.writeFile home + '/.ssh/authorized_keys', keys_str, (err) ->
+          fs.writeFile home + '/.ssh/authorized_keys2', keys_str, (err) ->
             if err
               console.error err
               res.locals.key_fail = true
@@ -257,9 +259,59 @@ app.post '/create', (req, res) ->
               # tell them it worked
               res.render 'create2'
 
-              # todo: notify user
+              notify = ->
+                # notify user
+                send_confirmation username, user, (err) ->
+                  if !err
+                    console.log 'Sent confirmation email'
+                  else
+                    console.log 'Error sending confirmation email', err
 
-              # todo: notify admin
+                # notify admin
+                send_notification username, user, (err) ->
+                  if !err
+                    console.log 'Sent notification email'
+                  else
+                    console.log 'Error sending notification email', err
+
+              # defer the emails to avoid a weird race condition with changing
+              # the layout
+              setTimeout notify, 100
+
+send_email = (name, opts, cb) ->
+  app.render name + '.eml', opts, (err, email) ->
+    if err or !email
+      return cb(err or 'Unable to render email')
+    sendmail = child_process.spawn 'sendmail', ['-t', '-i']
+    console.log 'sending email', email
+    sendmail.stdin.end email
+    sendmail.on 'exit', (code) ->
+      if code != 0
+        cb 'Sending email failed: ' + code
+      else
+        cb false
+
+send_confirmation = (username, user, cb) ->
+  opts =
+    settings: layout: 'layout.eml'
+    to: "#{user.name} <#{user.email}>"
+    from: config.admin_email
+    subject: 'RocHack Account'
+    name: user.name
+    username: username
+  send_email 'confirmation', opts, cb
+
+send_notification = (username, user, cb) ->
+  opts =
+    settings: layout: 'layout.eml'
+    to: config.admin_email
+    from: config.admin_email
+    subject: 'RocHack Account Signup'
+    name: user.name
+    username: username
+    email: user.email
+    github_url: user.html_url
+  send_email 'notification', opts, cb
 
 port = config.port
 app.listen port, '127.0.0.1'
