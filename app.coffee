@@ -9,6 +9,8 @@ net = require './net'
 config = require './config'
 
 api_host = 'api.github.com'
+api_headers =
+  'User-Agent': 'RocHack Account'
 
 # http://coffeescriptcookbook.com/chapters/strings/generating-a-unique-id
 unique_id = (length=8) ->
@@ -49,13 +51,11 @@ app.get '/login', (req, res) ->
       scope: 'user'
   else
     # exchange oauth code for access_token
-    headers =
-      'Content-Type': 'application/x-www-form-urlencoded'
     body = qs.stringify
       client_id: config.client_id
       client_secret: config.client_secret
       code: req.query.code
-    net.post 'github.com', '/login/oauth/access_token', null, headers, body, (status, data) -> 
+    net.post 'github.com', '/login/oauth/access_token', null, api_headers, body, (status, data) ->
       if status >= 400
         console.error 'Status', status, 'getting access token.'
         return
@@ -85,8 +85,12 @@ app.get '/create', (req, res) ->
   query =
     'access_token': token
   #res.send 'looking up user'
-  net.get api_host, '/user', query, null, null, (status, data) ->
-    user = JSON.parse data
+  net.get api_host, '/user', query, api_headers, null, (status, data) ->
+    user = try JSON.parse data
+    if !user
+      console.error 'Unable to get user', 'status': status, 'data:', data
+      res.render 'create'
+      return
     username = user.login
     res.locals = username: username
     req.session.username = username
@@ -98,11 +102,11 @@ app.get '/create', (req, res) ->
     # check membership
     #res.send 'checking membership'
     path = '/orgs/RocHack/public_members/' + qs.escape username
-    net.get api_host, path, query, null, null, (status, data) ->
+    net.get api_host, path, query, api_headers, null, (status, data) ->
       is_member = status == 204
       unless is_member
         # not a rochack member
-        console.log 'user', username, 'is not a member'
+        console.log 'user', username, 'is not a public member'
         res.locals.nonmember = true
         res.render 'create'
         return
@@ -118,15 +122,18 @@ app.get '/create', (req, res) ->
           res.render 'create'
         else
           # get keys
-          net.get api_host, '/user/keys', query, null, null, (status, data) ->
+          path = "/users/#{qs.escape username}/keys"
+          net.get api_host, path, query, api_headers, null, (status, data) ->
             if status != 200
               res.locals.key_error = true
+              console.error 'Unable to import ssh keys', status, data
             else
               try keys = JSON.parse data
               unless keys[0]?.key
                 res.locals.no_keys = true
               else
                 res.locals.ok = true
+                res.locals.name = user.name
                 user_stuff[username].keys =
                   (keys.map (key) -> key.key).join '\n'
             # ask user for confirmation and agreement
@@ -214,7 +221,7 @@ app.post '/create', (req, res) ->
           'touch .ssh/authorized_keys'
           'chmod 600 .ssh/authorized_keys'
           'touch .forward'
-          "chown -R #{uid}:#{gid} ."
+          "chown -R #{uid}:#{gid} .ssh .forward"
         ].join '; '
 
         child_process.exec cmd, cwd: home, (err, stdout, stderr) ->
@@ -238,7 +245,6 @@ app.post '/create', (req, res) ->
             console.log 'Wrote authorized_keys for', username
 
             # set up email forwarding
-            #res.send "Adding email forward for #{user.email}..."
             fs.writeFile home + '/.forward', user.email, (err) ->
               if err
                 console.error err
@@ -246,11 +252,14 @@ app.post '/create', (req, res) ->
               else
                 console.log 'Wrote .forward:', user.email
                 res.locals.forward_success = true
+                res.locals.forward_address = user.email
 
-              # notify admin
-              #'', config.signup_notify_email
-
+              # tell them it worked
               res.render 'create2'
+
+              # todo: notify user
+
+              # todo: notify admin
 
 port = config.port
 app.listen port, '127.0.0.1'

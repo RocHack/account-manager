@@ -6,7 +6,8 @@ qs = require 'querystring'
 
 module.exports =
   get: (host, path, query, headers, data, cb) ->
-    headers['Content-Length'] = data.length if headers
+    headers ||= {}
+    headers['Content-Length'] = data.length if data
     options =
       method: if data then 'POST' else 'GET'
       host: host
@@ -21,7 +22,8 @@ module.exports =
     req.end()
 
   post: (host, path, query, headers, data, cb) ->
-    headers['Content-Length'] = data.length if headers
+    headers ||= {}
+    headers['Content-Length'] = data.length if data
     options =
       method: if data then 'POST' else 'GET'
       host: host
