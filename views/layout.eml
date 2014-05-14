@@ -1,0 +1,5 @@
+From: {{{from}}}
+To: {{{to}}}
+Subject: {{{subject}}}
+
+{{{ yield }}}

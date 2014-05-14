@@ -1,0 +1,14 @@
+Dear {{name}},
+
+Your account on the RocHack server has been set up successfully.
+
+Username: {{username}}
+Server: rochack.org
+
+Acceptable Use Policy:
+https://rochester.edu/it/policy/assets/pdf/AcceptableUse.pdf
+
+For technical assistance, ask in IRC ##rochack on Freenode.
+
+--
+RocHack Admin
