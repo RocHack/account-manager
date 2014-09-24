@@ -45,6 +45,7 @@ app.get '/', (req, res) ->
 
 app.get '/login', (req, res) ->
   unless req.query.code
+    console.log 'Redirecting to GitHub to get auth'
     # get oauth code
     res.redirect 'https://github.com/login/oauth/authorize?' + qs.stringify
       client_id: config.client_id
@@ -52,6 +53,7 @@ app.get '/login', (req, res) ->
       redirect_uri: 'http://account.rochack.org/login'
       scope: 'user'
   else
+    console.log 'Got auth code from GitHub'
     # exchange oauth code for access_token
     body = qs.stringify
       client_id: config.client_id
@@ -79,22 +81,44 @@ app.get '/login', (req, res) ->
       res.redirect 'create'
 
 app.get '/create', (req, res) ->
+
+  console.log('create')
+
   unless token = req.session.access_token
+    console.log('Redirecting to login')
     res.redirect 'login'
     return
+
+  console.log('no redirect')
+
+  res.locals = {}
 
   # got access_token
   query =
     'access_token': token
-  #res.send 'looking up user'
+  console.log 'looking up user'
   net.get api_host, '/user', query, api_headers, null, (status, data) ->
+    console.log 'got response', status, data
     user = try JSON.parse data
     if !user
       console.error 'Unable to get user', 'status': status, 'data:', data
       res.render 'create'
       return
+
+    console.log 'got user', user
+
+    if !user.login or user.message?.indexOf('We had issues') == 0
+      res.locals.github_error = true
+      res.render 'create'
+      return
+
+    if !user.email
+      res.locals.no_email = true
+      res.render 'create'
+      return
+
     username = user.login
-    res.locals = username: username
+    res.locals.username = username
     req.session.username = username
     user_stuff[username] =
       user: user
@@ -102,7 +126,7 @@ app.get '/create', (req, res) ->
     console.log 'User', username, 'requesting an account'
 
     # check membership
-    #res.send 'checking membership'
+    console.log 'checking membership'
     path = '/orgs/RocHack/public_members/' + qs.escape username
     net.get api_host, path, query, api_headers, null, (status, data) ->
       is_member = status == 204
@@ -114,7 +138,7 @@ app.get '/create', (req, res) ->
         return
 
       # check for existing account
-      #res.send 'checking for existing account'
+      console.log 'checking for existing account'
       getent = child_process.spawn 'getent', ['passwd', username]
       getent.on 'exit', (code) ->
         if code == 0
@@ -129,6 +153,7 @@ app.get '/create', (req, res) ->
             if status != 200
               res.locals.key_error = true
               console.error 'Unable to import ssh keys', status, data
+              res.end 'Unable to import ssh keys'
             else
               try keys = JSON.parse data
               unless keys[0]?.key
@@ -182,7 +207,7 @@ app.post '/create', (req, res) ->
     username
   ]
 
-  #res.send 'Creating account...'
+  console.log 'Creating account...'
   useradd = child_process.spawn 'useradd', args
   useradd.stderr.on 'data', (data) ->
     console.error data.toString()
@@ -214,7 +239,6 @@ app.post '/create', (req, res) ->
         gid = 1000
 
         # init home directory
-        #res.send 'Importing your public keys...'
         # todo: setuid/gid this script
         cmd = [
           'chmod 750 .'
@@ -236,7 +260,8 @@ app.post '/create', (req, res) ->
             return
 
           # import ssh keys
-          fs.writeFile home + '/.ssh/authorized_keys2', keys_str, (err) ->
+          console.log 'Importing public keys...'
+          fs.writeFile home + '/.ssh/authorized_keys', keys_str, (err) ->
             if err
               console.error err
               res.locals.key_fail = true
@@ -314,5 +339,5 @@ send_notification = (username, user, cb) ->
   send_email 'notification', opts, cb
 
 port = config.port
-app.listen port, '127.0.0.1'
+app.listen port, '::'
 console.log 'Listening on port', port
