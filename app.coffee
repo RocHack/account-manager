@@ -1,4 +1,5 @@
 #!/usr/bin/env coffee
+#vi: ts=2 sts=2 sw=2 et
 # User account creation interface for RocHack members using GitHub oauth
 
 qs = require 'querystring'
@@ -105,9 +106,8 @@ app.get '/create', (req, res) ->
       res.render 'create'
       return
 
-    console.log 'got user', user
-
     if !user.login or user.message?.indexOf('We had issues') == 0
+      console.log 'github error'
       res.locals.github_error = true
       res.render 'create'
       return
