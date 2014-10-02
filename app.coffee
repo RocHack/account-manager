@@ -117,7 +117,7 @@ app.get '/create', (req, res) ->
       res.render 'create'
       return
 
-    username = user.login
+    username = user.login.toLowerCase()
     res.locals.username = username
     req.session.username = username
     user_stuff[username] =
